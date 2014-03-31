@@ -175,18 +175,28 @@ void Mesh::readInVertices()
 
 	}
 	numVerts = temp_vertices.size() + 1;
+	numUVs = temp_uvs.size() + 1;
 
 	pt = new Point3[numVerts + 1];        assert(pt != NULL);
 
 	for (unsigned int i = 1; i < numVerts; i++){
 
 		Point3 vertex = temp_vertices[i - 1];
+		
 		//Point2 uv = temp_uvs[i];
 
 		pt[i].x = vertex.x;
 		pt[i].y = vertex.y;
 		pt[i].z = vertex.z;
+		
 		//cout << "Vertex " << i << " = " << pt[i].x << " " << pt[i].y << " " << pt[i].z << endl;
+	}
+
+	for(unsigned int i = 1; i < numUVs; i++)
+	{
+		Point2 curuv = temp_uvs[i - 1];
+		uv[i].x = curuv.x;
+		uv[i].y = curuv.y;
 	}
 	cout << "Vertices parsed" << endl;
 }
@@ -328,7 +338,9 @@ void Mesh::drawEdges()
 		for (int v = 0; v < n; v++) {
 			int iv = face[f].vert[v].vertIndex; assert(iv >= 0 && iv < numVerts);
 			glVertex3f(pt[iv].x*scale, pt[iv].y*scale, pt[iv].z*scale);
+			//glTexCoord2f(uv[iv].x*scale, uv[iv].y*scale);
 		}
+		//glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
 		glEnd();
 	}
 	glFlush();
@@ -352,6 +364,7 @@ void Mesh::drawFaces()
 			//cout << "face[f].vert[v].vertIndex = " << iv << "  numVerts = " << numVerts << endl;
 			assert(iv >= 0 && iv < numVerts);
 			glVertex3f(pt[iv].x*scale, pt[iv].y*scale, pt[iv].z*scale);
+			
 		}
 		glEnd();
 	}

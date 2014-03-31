@@ -39,12 +39,14 @@ public:
 	void Mesh::readInFaces();
 
 private:
-	int numVerts, numNorms, numFaces;
+	int numVerts, numNorms,numUVs, numFaces;
 	Point3 *pt; // array of points
 	Vector3 *norm; // array of normals
+	Vector3 *uv;
 	Face *face; // array of faces
 	int lastVertUsed;
 	int lastNormUsed;
+	int lastUvUsed;
 	int lastFaceUsed;
 	float scale;
 	RenderMode mode;
