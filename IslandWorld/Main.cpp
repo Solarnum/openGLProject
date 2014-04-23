@@ -34,8 +34,9 @@ bool right_btn = false;
 void Tree();
 static Mesh rock("models/rock_1.obj");
 static Mesh island("models/island_1.obj");
-static Mesh palm("models/palmLeaf.obj");
+static Mesh palm("models/palmleaf_group.obj");
 static Mesh palmtree("models/palmtrunk.obj");
+static Mesh sky("models/skybox.obj");
 //Mesh palmtree;
 
 
@@ -311,7 +312,7 @@ void initMeshRenderMode(Mesh &mesh) {
 
 void renderScene() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glShadeModel(GL_SMOOTH);
+	//glShadeModel(GL_SMOOTH);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
@@ -319,7 +320,12 @@ void renderScene() {
 	initMeshRenderMode(island);
 	initMeshRenderMode(palm);
 	initMeshRenderMode(palmtree);
-	
+	initMeshRenderMode(sky);
+	glPushMatrix();
+	glTranslated(mx, my, mz);
+	sky.drawOpenGL();
+	sky.setScale(20.0);
+	glPopMatrix();
 	island.drawOpenGL();
 	glPushMatrix();
 	glTranslated(41, 5, 19);
@@ -345,7 +351,7 @@ void Tree()
 
 	glPushMatrix();
 	glTranslated(mx, my, mz);
-	palm.setScale(4.0);
+	palm.setScale(2.0);
 	palm.drawOpenGL();
 	glPopMatrix();
 
