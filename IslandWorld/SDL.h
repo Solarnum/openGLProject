@@ -341,6 +341,7 @@ class VertexID{
 public:
 	int vertIndex;
 	int normIndex;
+	int uvIndex;
 };
 
 //################# class FACE ##############

@@ -2,6 +2,7 @@
 
 #include "Mesh.h"
 #include "SDL.h"
+#include "imageloader.h"
 
 #define TWOPI 6.283185
 
@@ -34,8 +35,23 @@ void Mesh::drawOpenGL()
 {
 	tellMaterialsGL();
 	glPushMatrix();
+	if (usesTexture)
+	{
+		if (!textureLoaded)
+		{
+			cout << " \n TextureFileName = " << texturefile << endl;
+		setTexture(loadTexture(texturefile));
+		}
+			
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glEnable(GL_TEXTURE_2D);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexEnvi(GL_TEXTURE_2D, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	}
 	glMultMatrixf(transf.m);
-
 	switch (mode) {
 	case MODE_WIRE:
 		drawEdges();
@@ -48,7 +64,7 @@ void Mesh::drawOpenGL()
 		drawEdges();
 		break;
 	}
-
+	
 	glPopMatrix();
 }
 
@@ -108,8 +124,6 @@ void Mesh::readMesh(string fname)
 			cout << "can't open file or eof: " << fname << endl;
 			makeEmpty(); return;
 		}
-
-
 		inStream >> numVerts >> numNorms >> numFaces;
 		// make arrays for vertices, normals, and faces
 		pt = new Point3[numVerts];        assert(pt != NULL);
@@ -147,6 +161,8 @@ void Mesh::readInVertices()
 	}
 	std::vector<Point3> temp_vertices;
 	std::vector<Point2> temp_uvs;
+	char mtllib[256];
+	bool mtllibFound = false;
 
 	while (1){
 		char lineHeader[128];
@@ -164,8 +180,25 @@ void Mesh::readInVertices()
 		else if (strcmp(lineHeader, "vt") == 0){
 			Point2 uv;
 			fscanf(file, "%f %f\n", &uv.x, &uv.y);
-			uv.y = -uv.y; // Invert V coordinate since we will only use DDS texture, which are inverted. Remove if you want to use TGA or BMP loaders.
+			//uv.y = (1 - uv.y);
 			temp_uvs.push_back(uv);
+		}
+		else if (strcmp(lineHeader, "mtllib") == 0)
+		{
+			mtllibFound = true;
+			fscanf(file, "%s\n", mtllib);
+		}
+		else if (strcmp(lineHeader, "o") == 0)
+		{
+			char objname[256];
+			fscanf(file, "%s\n", objname);
+			objectname = objname;
+		}
+		else if (strcmp(lineHeader, "usemtl") == 0)
+		{
+			char materialName[256];
+			fscanf(file, "%s\n", materialName);
+
 		}
 		else{
 			// Eat up the rest of the line
@@ -192,6 +225,8 @@ void Mesh::readInVertices()
 		//cout << "Vertex " << i << " = " << pt[i].x << " " << pt[i].y << " " << pt[i].z << endl;
 	}
 
+	uv = new Vector3[numUVs + 1];
+
 	for(unsigned int i = 1; i < numUVs; i++)
 	{
 		Point2 curuv = temp_uvs[i - 1];
@@ -199,6 +234,102 @@ void Mesh::readInVertices()
 		uv[i].y = curuv.y;
 	}
 	cout << "Vertices parsed" << endl;
+	cout << "Objectname = " << objectname << endl;
+
+	if (mtllibFound)
+	{
+		thread t4(&Mesh::readInMaterial, this, mtllib);
+		t4.join();
+	}
+	
+}
+
+void Mesh::readInMaterial(string mtllib)
+{
+	mtllib = "models/" + mtllib;
+	cout << "\nReading In Materials "<< mtllib << "\n" << endl;
+	FILE* file = fopen(mtllib.c_str(), "r");
+	if (file == NULL){
+		printf("Can't open file\n");
+		cout << "Filename = " << mtllib << endl;
+		getchar();
+	}
+	char materialName[256];
+	float specularExponent;
+	Point3 ambientReflectivity;
+	Point3 diffuseReflectivity;
+	Point3 specularReflectivity;
+	float dissolve;
+	float opticalDensity;
+	int illumination;
+	string textureMap;
+	
+
+
+	while (1){
+		char lineHeader[128];
+		// read in the first word of the line
+		int res = fscanf(file, "%s", lineHeader);
+		if (res == EOF)
+			break; // EOF = End Of File. Quit the loop.
+
+		//read in vertices
+		if (strcmp(lineHeader, "newmtl") == 0){
+
+			fscanf(file, "%s\n", materialName);
+		}
+		else if (strcmp(lineHeader, "Ns") == 0)
+		{
+			fscanf(file, "%f\n", &specularExponent);
+		}
+		else if (strcmp(lineHeader, "Ka") == 0)
+		{
+			fscanf(file, "%f %f %f\n", &ambientReflectivity.x, &ambientReflectivity.y, &ambientReflectivity.z);
+		}
+		else if (strcmp(lineHeader, "Kd") == 0)
+		{
+			fscanf(file, "%f %f %f\n", &diffuseReflectivity.x, &diffuseReflectivity.y, &diffuseReflectivity.z);
+		}
+		else if (strcmp(lineHeader, "Ks") == 0)
+		{
+			fscanf(file, "%f %f %f\n", &specularReflectivity.x, &specularReflectivity.y, &diffuseReflectivity.z);
+		}
+		else if (strcmp(lineHeader, "Ni") == 0)
+		{
+			fscanf(file, "%f\n", &opticalDensity);
+		}
+		else if (strcmp(lineHeader, "d") == 0)
+		{
+			fscanf(file, "%f\n", &dissolve);
+		}
+		else if (strcmp(lineHeader, "illum") == 0)
+		{
+			fscanf(file, "%d\n", &illumination);
+		}
+		else if (strcmp(lineHeader, "map_Kd") == 0)
+		{
+			usesTexture = true;
+			//char texturemap[256];
+			texturefile = new char[256];
+			fscanf(file, "%s\n", texturefile);
+			//string tname = "models/" + *texturemap;
+			cout << "Texture Name = " << texturefile << endl;
+			
+			//texturefile = texturemap;
+			//setTexture(loadTexture(texturemap));
+		}
+
+		
+		mtrl.ambient.set(ambientReflectivity.x, ambientReflectivity.y, ambientReflectivity.z);
+		mtrl.diffuse.set(diffuseReflectivity.x, diffuseReflectivity.y, diffuseReflectivity.z);
+		mtrl.specular.set(specularReflectivity.x, specularReflectivity.y, diffuseReflectivity.z);
+		mtrl.emissive.set(specularReflectivity.x, specularReflectivity.y, diffuseReflectivity.z);
+		mtrl.specularExponent = specularExponent;
+		
+		
+	}
+
+	//cout << "mtllib parsed - "<< texturemap << endl;
 }
 
 void Mesh::readInNormals()
@@ -261,13 +392,16 @@ void Mesh::readInFaces()
 		if (strcmp(lineHeader, "f") == 0){
 
 			unsigned int* temp_face;
-			temp_face = new unsigned int[6];
+			temp_face = new unsigned int[9];
+			unsigned int* temp_unused = new unsigned int[3];
 
 			//Scans in face vertices and norms -- it goes face, norm, face, norm, face, norm
 			//int matches = fscanf(file, "%d//%d %d//%d %d//%d\n", &temp_face[0], &temp_face[1], &temp_face[2], &temp_face[3], &temp_face[4], &temp_face[5]);
-			int matches = fscanf(file, "%d//%d %d//%d %d//%d\n", &temp_face[0], &temp_face[3], &temp_face[1], &temp_face[4], &temp_face[2], &temp_face[5]);
-			if (matches == 6){
+			//int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &temp_face[0], &temp_unused[0], &temp_face[3], &temp_face[1], &temp_unused[1], &temp_face[4], &temp_face[2], &temp_unused[1], &temp_face[5]);
+			int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &temp_face[0], &temp_face[6], &temp_face[3], &temp_face[1], &temp_face[7], &temp_face[4], &temp_face[2], &temp_face[8], &temp_face[5]);
+			if (matches == 9){
 				vertfaces.push_back(temp_face);
+				//tx.push_back(temp_unused);
 			}
 		}
 		else{
@@ -276,6 +410,7 @@ void Mesh::readInFaces()
 			fgets(stupidBuffer, 1000, file);
 		}
 	}
+	
 	numFaces = vertfaces.size();
 	face = new Face[numFaces];        assert(face != NULL);
 	for (unsigned int i = 0; i < numFaces; i++){
@@ -283,16 +418,22 @@ void Mesh::readInFaces()
 		face[i].vert = new VertexID[3]; assert(face[i].vert != NULL);
 		//Save the 3 face vertices to the mesh object
 
-		for (unsigned int j = 0; j < 6; j++){
+		for (unsigned int j = 0; j < 9; j++){
 			if (j < 3)
 			{
 				face[i].vert[j % 3].vertIndex = vertfaces[i][j];
 			}
-			else
+			else if (j < 6)
 			{
 				face[i].vert[j % 3].normIndex = vertfaces[i][j];
 			}
+			else
+			{
+				face[i].vert[j % 3].uvIndex = vertfaces[i][j];
+			}
 		}
+
+		
 
 		//Failsafe
 		/*
@@ -321,6 +462,37 @@ void Mesh::readObj(string fnamek){
 	t3.join();
 
 	cout << fnamek << " Finished Parsing! :: " << "numNorms = " << numNorms << " numFaces = " << numFaces << " VertexIndcies = " << numVerts << endl;
+	
+}
+
+unsigned int Mesh::loadTexture(const char * filename)
+{
+	Image* image = loadBMP(filename);
+	GLuint textureId;
+	glGenTextures(1, &textureId); //Make room for our texture
+	glBindTexture(GL_TEXTURE_2D, textureId); //Tell OpenGL which texture to edit
+	//Map the image to the texture
+	glTexImage2D(GL_TEXTURE_2D,                //Always GL_TEXTURE_2D
+		0,                            //0 for now
+		GL_RGB,                       //Format OpenGL uses for image
+		image->width, image->height,  //Width and height
+		0,                            //The border of the image
+		GL_RGB, //GL_RGB, because pixels are stored in RGB format
+		GL_UNSIGNED_BYTE, //GL_UNSIGNED_BYTE, because pixels are stored
+		//as unsigned numbers
+		image->pixels);               //The actual pixel data
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexEnvi(GL_TEXTURE_2D, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	delete(image);
+	cout << "Texture Loaded!" << endl;
+	textureLoaded = true;
+	return textureId; //Returns the id of the texture
+}
+
+void Mesh::setTexture(GLuint t)
+{ 
+	texture = t; 
 }
 
 //<<<<<<<<<<<<<<<<<<<<<< drawEdges >>>>>>>>>>>>>>>>>>>>
@@ -346,24 +518,40 @@ void Mesh::drawEdges()
 	glFlush();
 }
 
+int count = 0;
 //<<<<<<<<<<<<<<<<<<<<<< drawFaces >>>>>>>>>>>>>>>>>>>>
 void Mesh::drawFaces()
 { // draw each face of this mesh using OpenGL: draw each polygon.
+	
 	if (isEmpty()) return; // mesh is empty
 	for (int f = 0; f < numFaces; f++)
 	{
 		int n = face[f].nVerts;
-		glBegin(GL_POLYGON);
+		glBegin(GL_TRIANGLES);
 		for (int v = 0; v < n; v++)
 		{
 			int in = face[f].vert[v].normIndex;
 			//cout << "face[f].vert[v].normIndex = " << in << "  numNorms = " << numNorms << endl;
 			assert(in >= 0 && in < numNorms);
 			glNormal3f(norm[in].x, norm[in].y, norm[in].z);
+
+			int iu = face[f].vert[v].uvIndex;
+			glTexCoord2f(uv[iu].x, uv[iu].y);
+
 			int iv = face[f].vert[v].vertIndex;
 			//cout << "face[f].vert[v].vertIndex = " << iv << "  numVerts = " << numVerts << endl;
 			assert(iv >= 0 && iv < numVerts);
 			glVertex3f(pt[iv].x*scale, pt[iv].y*scale, pt[iv].z*scale);
+			
+
+			
+			//if (v < 2)
+				//glTexCoord2f(uv[iv].x * scale, uv[iv].y * scale);
+			//else
+				//glTexCoord2f(tx[iv][2] * scale, tx[iv][0] * scale);
+				
+
+
 			
 		}
 		glEnd();

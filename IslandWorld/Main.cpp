@@ -8,6 +8,8 @@
 #include "SDL.h"
 #include "camera.h"
 #include "Mesh.h"
+#include "imageloader.h"
+#include "RGBpixmap.h"
 
 
 #define BUTTON_NOT_HELD	false
@@ -29,26 +31,18 @@ int camera_y = 0;
 bool left_btn = false;
 bool right_btn = false;
 
-static Mesh base("models/palmtree.obj");
-//static Mesh base("base.3vn");
-/*
-static Mesh wall("models/3vn/base.3vn");
-static Mesh roof("models/3vn/base.3vn");
-static Mesh arch("models/3vn/arch.3vn");
-static Mesh innerArch("models/3vn/arch.3vn");
-static Mesh sideArch("models/3vn/sideArch.3vn");
-static Mesh centralDome("models/3vn/dome1.3vn");
+void Tree();
+static Mesh rock("models/rock_1.obj");
+static Mesh island("models/island_1.obj");
+static Mesh palm("models/palmLeaf.obj");
+static Mesh palmtree("models/palmtrunk.obj");
+//Mesh palmtree;
 
-static Mesh dome("models/3vn/dome2.3vn");
-static Mesh pillar("models/hugecube.obj");
-static Mesh column("models/3vn/column.3vn");
-static Mesh helix1;
-static Mesh helix2;
-*/
 
 static float nearPlane = 1.0;
 static float farPlane = 300.0;
 static float transitionSpeed = 1.0;
+double mx, my, mz = 0;
 
 //---------FPS counter------------
 GLvoid *font_style = GLUT_BITMAP_TIMES_ROMAN_24;
@@ -264,15 +258,17 @@ double negSin(double t) {
 }
 
 void init(void) {
-	glClearColor(0.2f, 0.2f, 1.0f, 1.0f); // background is blue
-	glShadeModel(GL_SMOOTH);
 
+	glClearColor(0.2f, 0.2f, 1.0f, 1.0f); // background is blue
+	
 	float position[] = { 100.0, 100.0, 100.0, 1.0 };
 	float intensity[] = { 0.5, 0.5, 0.5 };
 	GLfloat lightAmbient[] = { 0.3f, 0.3f, 0.3f, 1.0f };
+	GLfloat mat_emission[] = { 0.4, 0.4, 0.4, 1.0 };
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, intensity);
+	glLightfv(GL_LIGHT0, GL_EMISSION, mat_emission);
 
 	GLfloat matDiffuse[] = { 0.9766, 0.9375, 0.8984, 1.0f };
 	GLfloat matSpecular[] = { 0.0, 0.0f, 0.0f, 1.0f };
@@ -280,24 +276,11 @@ void init(void) {
 	GLfloat wallDiffuse[] = { 0.9375, 0.82, 0.703, 1.0f };
 	GLfloat helixDiffuse[] = { 1.0, 0.2, 0.2, 1.0f };
 
-	setMeshMaterial(base, baseDiffuse, baseDiffuse, matSpecular);
-	/*
-	helix1.makeSmoothTube(cos, sin, identitys, 12.5664);
-	helix2.makeSmoothTube(negCos, negSin, identitys, 12.5664);
+	glEnable(GL_BLEND);//enable blend
 
-	setMeshMaterial(helix1, helixDiffuse, helixDiffuse, matSpecular);
-	setMeshMaterial(helix2, helixDiffuse, helixDiffuse, matSpecular);
-	setMeshMaterial(base, baseDiffuse, baseDiffuse, matSpecular);
-	setMeshMaterial(arch, matDiffuse, matDiffuse, matSpecular);
-	setMeshMaterial(wall, wallDiffuse, wallDiffuse, matSpecular);
-	setMeshMaterial(roof, matDiffuse, matDiffuse, matSpecular);
-	setMeshMaterial(innerArch, wallDiffuse, wallDiffuse, matSpecular);
-	setMeshMaterial(sideArch, matDiffuse, matDiffuse, matSpecular);
-	setMeshMaterial(centralDome, matDiffuse, matDiffuse, matSpecular);
-	setMeshMaterial(dome, matDiffuse, matDiffuse, matSpecular);
-	setMeshMaterial(pillar, matDiffuse, matDiffuse, matSpecular);
-	setMeshMaterial(column, matDiffuse, matDiffuse, matSpecular);
-	*/
+	glEnable(GL_DEPTH_TEST);//enable depth
+	glEnable(GL_DEPTH);
+	glEnable(GL_COLOR_MATERIAL);
 
 	traverse.setCameraPosition(1);
 	camera.setShape(45, screenWidth / (float)screenHeight, nearPlane, farPlane);
@@ -323,159 +306,48 @@ void initMeshRenderMode(Mesh &mesh) {
 	else
 		mesh.setRenderMode(Mesh::MODE_SOLID);
 }
-/*
-void drawDome(double x, double y, double z, double domeScale) {
-	glPushMatrix();
-	glTranslated(x, y, z);
-	glScaled(domeScale, domeScale, domeScale);
 
-	double archScale = 0.3265565289515433;
-	double archDisplacement = 8.5600927266290388;
-	double domeDisplacement = 50.0*archScale;
-
-	for (int i = 0; i<8; i++) {
-		glPushMatrix();
-		glRotated(45.0*i, 0.0, 1.0, 0.0);
-		glTranslated(0.0, 0.0, archDisplacement);
-		glScaled(archScale, archScale, archScale);
-		arch.drawOpenGL();
-		glPopMatrix();
-	}
-
-	glTranslated(0.0, domeDisplacement, 0.0);
-	dome.drawOpenGL();
-	glPopMatrix();
-}
-
-*/
-
-/*
-void drawPillar(double x, double y, double z) {
-	glPushMatrix();
-	glTranslated(x, y, z);
-	pillar.drawOpenGL();
-	drawDome(0.0, 60.0, 0.0, 9.6 / 32.0);
-	glPopMatrix();
-}
-*/
-
-/*
-void drawBoxAt(double x, double y, double z, double width, double height, double depth, bool isWall = true) {
-	glPushMatrix();
-
-	glTranslated(x + width / 2.0, y, z + depth / 2.0);
-	glScaled(width / 150.0, height / 15.0, depth / 150.0);
-	if (isWall)
-		wall.drawOpenGL();
-	else
-		roof.drawOpenGL();
-	glPopMatrix();
-}
-*/
-
-/*
-void drawFace(double x, double y, double scale, bool lower = false) {
-	glPushMatrix();
-	glTranslated(x, y, 0.0);
-
-	glPushMatrix();
-	glScaled(scale, scale, 1.0);
-	arch.drawOpenGL();
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslated(0.0, 0.0, -2.0);
-	glScaled(scale*0.5, scale*0.5, 0.2);
-	innerArch.drawOpenGL();
-	glPopMatrix();
-
-	drawBoxAt(-15.0*scale, 0.0, -2.0, 7.5*scale, 25.0*scale, 2.0);
-	drawBoxAt(7.5*scale, 0.0, -2.0, 7.5*scale, 25.0*scale, 2.0);
-	double height = lower ? 25.0*scale : 25.0*scale - 2.0;
-	drawBoxAt(-15.0*scale, 25.0*scale, -2.0, 30.0*scale, height, 2.0);
-	glPopMatrix();
-}
-
-*/
-
-/*
-void drawColumn(double x, double height) {
-	glPushMatrix();
-	glTranslated(x, 0.0, 10.0);
-	glScaled(1.0, height / 84.0, 1.0);
-	column.drawOpenGL();
-	glPopMatrix();
-}
-*/
-
-/*
-void drawFrontFace() {
-	drawFace(0.0, 0.0, 1.0);
-	drawFace(-22.5, 25, 0.5);
-	drawFace(-22.5, 0.0, 0.5, true);
-	drawFace(22.5, 25, 0.5);
-	drawFace(22.5, 0.0, 0.5, true);
-
-	drawBoxAt(-15.0, 50.0, 8.0, 30.0, 5.0, 2.0, false);
-	drawColumn(-30.0, 60.0);
-	drawColumn(30.0, 60.0);
-	drawColumn(-15.0, 65.0);
-	drawColumn(15.0, 65.0);
-}
-*/
-
-/*
-void drawSideFace() {
-	double sideWidth = sqrt(288.0);
-	double sideDepth = sideWidth / 2.0;
-	glPushMatrix();
-
-	glTranslated(-36.0, 0.0, 36.0);
-	glRotated(135.0, 0.0, 1.0, 0.0);
-
-	glPushMatrix();
-	glScaled(sideWidth / 30.0, 0.5, sideDepth / 10.0);
-	sideArch.drawOpenGL();
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslated(0.0, 25, 0.0);
-	glScaled(sideWidth / 30.0, 0.5, sideDepth / 10.0);
-	sideArch.drawOpenGL();
-	glPopMatrix();
-
-	glPopMatrix();
-}
-
-*/
-
-/*
-void drawTube() {
-	static double rotAmount = 0.0;
-	double rotSpeed = 10.0;
-
-	glPushMatrix();
-	glTranslated(0.0, 30.0, 0.0);
-	glRotated(90.0, 1.0, 0.0, 0.0);
-	glRotated(rotAmount, 0.0, 0.0, 1.0);
-	glScaled(1.0, 1.0, 1.5);
-	helix1.drawOpenGL();
-	helix2.drawOpenGL();
-	glPopMatrix();
-
-	rotAmount += rotSpeed;
-}
-*/
 
 
 void renderScene() {
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glShadeModel(GL_SMOOTH);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+	initMeshRenderMode(rock);
+	initMeshRenderMode(island);
+	initMeshRenderMode(palm);
+	initMeshRenderMode(palmtree);
+	
+	island.drawOpenGL();
 	glPushMatrix();
-	initMeshRenderMode(base);
+	glTranslated(41, 5, 19);
+	rock.drawOpenGL();
+	glPopMatrix();
+	
+	rock.setScale(3.0);
+	island.setScale(50.0);
+	Tree();
+	
+	//drawFPS();
 
-	base.drawOpenGL();
-	base.setScale(6.0);
+}
 
-	drawFPS();
+void Tree()
+{
+	//drawPalmTree
+	glPushMatrix();
+	glTranslated(35, 4, 22);
+	palmtree.drawOpenGL();
+	palmtree.setScale(5.0);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(mx, my, mz);
+	palm.setScale(4.0);
+	palm.drawOpenGL();
+	glPopMatrix();
 
 }
 
@@ -543,7 +415,6 @@ void calculateFPS()
 
 void display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	traverse.draw();
 	traverse.setCamera();
 
@@ -558,7 +429,8 @@ void display() {
 		glEnable(GL_LIGHTING);
 	}
 
-	glColor3f(1.0, 1.0, 1.0);
+	glMatrixMode(GL_MODELVIEW);
+	//glColor3f(1.0, 1.0, 1.0);
 	glScaled(scale, scale, scale);
 	renderScene();
 	glPopMatrix();
@@ -673,16 +545,16 @@ void handleKB(unsigned char key, int x, int y) {
 		exit(0);
 		break;
 	case 'w':
-		camera.slide(0, 0, -2);
+		camera.slide(0, 0, -4);
 		break;
 	case 's':
-		camera.slide(0, 0, 2);
+		camera.slide(0, 0, 4);
 		break;
 	case 'd':
-		camera.slide(2, 0, 0);
+		camera.slide(4, 0, 0);
 		break;
 	case 'a':
-		camera.slide(-2, 0, 0);
+		camera.slide(-4, 0, 0);
 		break;
 	case 'r':
 		if (right_btn) {
@@ -692,6 +564,34 @@ void handleKB(unsigned char key, int x, int y) {
 			camera.roll(-5);
 		}
 		break;
+	case '1':
+		if (right_btn)
+		{
+			mx--;
+		}
+		else
+			mx++;
+		cout << "mx - " << mx << " my - " << my << " mz - " << mz << endl;
+		break;
+	case '2':
+		if (right_btn)
+		{
+			my--;
+		}
+		else
+			my++;
+		cout << "mx - " << mx << " my - " << my << " mz - " << mz << endl;
+		break;
+	case '3':
+		if (right_btn)
+		{
+			mz--;
+		}
+		else
+			mz++;
+		cout << "mx - " << mx << " my - " << my << " mz - " << mz << endl;
+		break;
+
 	default:;
 	}
 	glutPostRedisplay();
@@ -755,7 +655,7 @@ void main(int argc, char **argv) {
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(screenWidth, screenHeight);
 	glutInitWindowPosition(20, 20);
-	mainWindow = glutCreateWindow("ECE660: Castle Browser");
+	mainWindow = glutCreateWindow("Island World");
 	glutDisplayFunc(display);
 	glutKeyboardFunc(handleKB);
 	glutReshapeFunc(reshape);
@@ -765,7 +665,6 @@ void main(int argc, char **argv) {
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
-	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_NORMALIZE);
 
 	init();

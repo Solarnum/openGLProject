@@ -79,13 +79,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="imageloader.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="RGBpixmap.cpp" />
     <ClCompile Include="SDL.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
+    <ClInclude Include="imageloader.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="RGBpixmap.h" />
     <ClInclude Include="SDL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
