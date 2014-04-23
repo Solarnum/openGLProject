@@ -69,6 +69,7 @@ void Camera::getShape(float& vAngle, float& asp, float& nr, float& fr)
 	fr = farDist;
 }
 
+
 //<<<<<<<<<<<<<<<<<<<<<< slide >>>>>>>>>>>>>>>>>>>>>>..
 void Camera::slide(double du, double dv, double dn)
 { // slide both eye and lookAt by amount du * u + dv * v + dn * n;
@@ -129,7 +130,9 @@ void Camera::setAxes(Vector3 &u, Vector3 &v, Vector3 &n)
 
 void Camera::printPosition()
 {
+	cout << "_____________" << endl;
 	cout << "eye: <" << eye.x << ", " << eye.y << ", " << eye.z << ">" << endl;
-	cout << "lookAt: <" << eye.x - n.x << ", " << eye.y - n.y << ", "
-		<< eye.z - n.z << ">" << endl;
+	cout << "lookAt: <" << n.x << ", " << n.y << ", "
+		<< n.z << ">" << endl;
+	cout << "u" << " " << u.x << " " << u.y << " " << u.z << endl;
 }

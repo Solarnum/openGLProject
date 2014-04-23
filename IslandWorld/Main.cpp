@@ -33,17 +33,19 @@ bool right_btn = false;
 
 void Tree();
 static Mesh rock("models/rock_1.obj");
-static Mesh island("models/island_1.obj");
+static Mesh island("models/island.obj");
 static Mesh palm("models/palmleaf_group.obj");
 static Mesh palmtree("models/palmtrunk.obj");
-static Mesh sky("models/skybox.obj");
+static Mesh sky("models/skybox2.obj");
+static Mesh ocean("models/ocean.obj");
+static Mesh wilson("models/wilson.obj");
 //Mesh palmtree;
 
 
-static float nearPlane = 1.0;
-static float farPlane = 300.0;
+static float nearPlane = 0.10;
+static float farPlane = 1000.0;
 static float transitionSpeed = 1.0;
-double mx, my, mz = 0;
+double mx, my, mz,ms = 0;
 
 //---------FPS counter------------
 GLvoid *font_style = GLUT_BITMAP_TIMES_ROMAN_24;
@@ -260,30 +262,56 @@ double negSin(double t) {
 
 void init(void) {
 
-	glClearColor(0.2f, 0.2f, 1.0f, 1.0f); // background is blue
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // background is blue
 	
-	float position[] = { 100.0, 100.0, 100.0, 1.0 };
-	float intensity[] = { 0.5, 0.5, 0.5 };
-	GLfloat lightAmbient[] = { 0.3f, 0.3f, 0.3f, 1.0f };
-	GLfloat mat_emission[] = { 0.4, 0.4, 0.4, 1.0 };
+	float position[] = { 50.0, 50.0, 50.0, 1.0 };
+	float intensity[] = { 0.6, 0.7, 0.6 };
+	GLfloat lightAmbient[] = { 0.4f, 0.4f, 0.4f, 1.0f };
+	GLfloat mat_emission[] = { 0.6, 0.6, 0.6, 1.0 };
+
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, intensity);
 	glLightfv(GL_LIGHT0, GL_EMISSION, mat_emission);
 
+	
 	GLfloat matDiffuse[] = { 0.9766, 0.9375, 0.8984, 1.0f };
-	GLfloat matSpecular[] = { 0.0, 0.0f, 0.0f, 1.0f };
+	GLfloat matSpecular[] = { 0.6, 1.0f, 1.0f, 1.0f };
 	GLfloat baseDiffuse[] = { 0.82, 0.82, 0.9, 1.0f };
 	GLfloat wallDiffuse[] = { 0.9375, 0.82, 0.703, 1.0f };
 	GLfloat helixDiffuse[] = { 1.0, 0.2, 0.2, 1.0f };
 
+	setMeshMaterial(island, wallDiffuse, wallDiffuse, matSpecular);
+	setMeshMaterial(sky, wallDiffuse, wallDiffuse, matSpecular);
 	glEnable(GL_BLEND);//enable blend
+	glEnable(GL_SMOOTH);
+	glEnable(GL_LUMINANCE);
 
 	glEnable(GL_DEPTH_TEST);//enable depth
 	glEnable(GL_DEPTH);
-	glEnable(GL_COLOR_MATERIAL);
+	//glEnable(GL_COLOR_MATERIAL);
+	/*
+	glEnable(GL_FOG);
+	GLfloat fogMode[] = { GL_EXP};
+	GLfloat fogDens[] = { .1 };
+	glFogfv(GL_FOG_MODE, fogMode);
+	glFogfv(GL_FOG_DENSITY, fogDens);
+	*/
+	/*
+	GLuint fogMode[] = { GL_EXP, GL_EXP2, GL_LINEAR };
+	GLuint fogfilter = 0;
+	GLfloat fogColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glFogi(GL_FOG_MODE, fogMode[fogfilter]);        // Fog Mode
+	glFogfv(GL_FOG_COLOR, fogColor);            // Set Fog Color
+	glFogf(GL_FOG_DENSITY, 0.001f);              // How Dense Will The Fog Be
+	glHint(GL_FOG_HINT, GL_DONT_CARE);          // Fog Hint Value
+	glFogf(GL_FOG_START, 1.0f);             // Fog Start Depth
+	glFogf(GL_FOG_END, 5.0f);               // Fog End Depth
+	glEnable(GL_FOG);
 
-	traverse.setCameraPosition(1);
+	*/
+	//traverse.setCameraPosition(1);
+	camera.set(Point3(31.21, 9.90354, 23.2647), Point3(.5036, -.33309, 0.797126), Vector3(.793713, -.18594, -0.579183));
 	camera.setShape(45, screenWidth / (float)screenHeight, nearPlane, farPlane);
 }
 
@@ -312,37 +340,82 @@ void initMeshRenderMode(Mesh &mesh) {
 
 void renderScene() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glShadeModel(GL_SMOOTH);
+
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	initMeshRenderMode(rock);
 	initMeshRenderMode(island);
-	initMeshRenderMode(palm);
-	initMeshRenderMode(palmtree);
 	initMeshRenderMode(sky);
+	initMeshRenderMode(ocean);
+	initMeshRenderMode(wilson);
+
+	//glPushMatrix();
+	//glTranslated(mx, my, mz);
+	//glTranslated(mx, my, mz);
+	
+	//glPopMatrix();
 	glPushMatrix();
-	glTranslated(mx, my, mz);
+	glTranslated(0, -82, 0);
+	glRotated(-90, 0, 1, 0);
 	sky.drawOpenGL();
-	sky.setScale(20.0);
+	sky.setScale(400);
 	glPopMatrix();
+
+
+
 	island.drawOpenGL();
+
 	glPushMatrix();
-	glTranslated(41, 5, 19);
+	
+	glTranslated(-22, -11, -3);
+	glScaled(5, 5, 5);
 	rock.drawOpenGL();
 	glPopMatrix();
-	
 	rock.setScale(3.0);
 	island.setScale(50.0);
-	Tree();
+	glPushMatrix();
+	glTranslated(-30, 14, -60);
 	
-	//drawFPS();
+
+	Tree();
+	glPopMatrix();
+	
+	glPushMatrix();
+	glTranslated(-21, -13, -46);
+	ocean.drawOpenGL();
+	ocean.setScale(6);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(-21, -30, -46);
+	glScaled(5, 2.4, 5);
+	//ocean.drawOpenGL();
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotated(35, 0, 1, 0);
+	glTranslated(-26+ mx, 13 + my, -43 + mz);
+	//glTranslated(-26, 13, -43);
+	glScaled(.5, .5, .5);
+	Tree();
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(-2, 20, -33);
+	wilson.drawOpenGL();
+	glPopMatrix();
+	
 
 }
 
 void Tree()
 {
 	//drawPalmTree
+
+	initMeshRenderMode(palm);
+	initMeshRenderMode(palmtree);
+
 	glPushMatrix();
 	glTranslated(35, 4, 22);
 	palmtree.drawOpenGL();
@@ -350,7 +423,7 @@ void Tree()
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslated(mx, my, mz);
+	glTranslated(34, 47, 24);
 	palm.setScale(2.0);
 	palm.drawOpenGL();
 	glPopMatrix();
@@ -597,6 +670,16 @@ void handleKB(unsigned char key, int x, int y) {
 			mz++;
 		cout << "mx - " << mx << " my - " << my << " mz - " << mz << endl;
 		break;
+	case '=':
+		ms++;
+		break;
+	case '+':
+		ms--;
+		break;
+
+	case 'p':
+		camera.printPosition();
+		break;
 
 	default:;
 	}
@@ -647,7 +730,7 @@ void mouseMotionMonitor(int x, int y)
 	}
 	camera_x = x;
 	camera_y = y;
-	glutPostRedisplay();
+	//glutPostRedisplay();
 }
 void idle() {
 	if (glutGetWindow() != mainWindow)
@@ -669,6 +752,7 @@ void main(int argc, char **argv) {
 	glutMotionFunc(mouseMotionMonitor);
 	glutIdleFunc(idle);
 
+	
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glEnable(GL_NORMALIZE);
